@@ -1,0 +1,32 @@
+library("biomaRt")
+library(ggrepel)
+library(tidyverse)
+library(reshape2)
+library(DESeq2)
+library(pheatmap)
+library("biomaRt")
+library(ggrepel)
+
+setwd('/WorkingDirectory')
+data <- read.csv('yourdata.csv')
+
+data <- as.data.frame(data)
+
+log2FC <- as.numeric(data$Abundance.Ratio..log2....33.....34.)
+padj <- as.numeric(data$Abundance.Ratio.P.Value...33.....34.)
+gene <- sapply(strsplit(sapply(strsplit(data$Master.Protein.Descriptions,'GN='),"[",2),' '),"[",1)
+Significant <- case_when(padj <= 0.05 & abs(log2FC) > 1 ~ "Yes",
+                               TRUE ~ "No")
+
+df <- data.frame(log2FC,padj,gene,Significant)
+df <- df[ order(df$log2FC), ]
+
+namedVolcano <- df %>%
+  ggplot( aes( x = log2FC, y = -log10(padj),colour = Significant)) + geom_point() +
+  scale_colour_manual(values = c("black", "red")) +
+  theme_minimal() +
+  geom_text_repel(data = df[df$Significant == 'Yes',] , aes( label = gene) , colour= "black",max.overlaps = Inf) +
+  xlab("log2FC(33/34)")
+
+namedVolcano
+ggsave('output.png',namedVolcano,height = 10.5,width = 16.5)
